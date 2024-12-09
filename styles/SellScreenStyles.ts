@@ -5,22 +5,6 @@ export const sellScreenStyles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  imageSection: {
-    padding: 15,
-  },
-  addImageButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 20,
-  },
-  addImageText: {
-    marginTop: 8,
-    color: '#666',
-  },
   inputSection: {
     padding: 15,
   },
@@ -58,5 +42,44 @@ export const sellScreenStyles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  imageSection: {
+    padding: 16,
+  },
+  imageContainer: {
+    marginRight: 8,
+    position: 'relative',
+  },
+  selectedImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+  },
+  deleteButton: {
+    position: 'absolute',
+    right: -8,
+    top: -8,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addImageButton: {
+    width: 100,
+    height: 100,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderStyle: 'dashed',
+  },
+  addImageText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#666',
   },
 });

@@ -1,10 +1,6 @@
 import { StyleSheet } from 'react-native';
 
 export const HomeScreenStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

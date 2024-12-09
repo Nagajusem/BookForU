@@ -1,6 +1,7 @@
 // screens/MyPageScreen.tsx
 import React from 'react';
 import { myPageScreenStyles as styles } from '../../styles/MyPageScreenStyles';
+import { CommonStyles as Cstyles } from '../../styles/CommonStyles'
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {
   View,
@@ -15,7 +16,7 @@ import { authService } from '../../services/api';
 
 const MyPageScreen = () => {
   const { logout, user } = useAuth();
-
+  console.log('Current user in MyPage:', user); // 디버깅용 로그
   const handleLogout = () => {
     Alert.alert(
       '로그아웃',
@@ -69,9 +70,16 @@ const MyPageScreen = () => {
     );
   };
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>BookForU</Text>
+    <ScrollView style={Cstyles.container}>
+      <View style={Cstyles.header}>
+        <Image
+          source={require('../../assets/bookforu.png')} 
+          style={{
+            width: 120,
+            height: 40,
+            resizeMode: 'contain'
+          }}
+        />
       </View>
       <View style={styles.profileSection}>
         <Image
@@ -79,11 +87,14 @@ const MyPageScreen = () => {
           style={styles.profileImage}
         />
         <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>사용자 이름</Text>
+          <Text style={styles.profileName}>
+            {/* 나중에 닉네임 설정하면 id가 아닌 닉네임이 나오도록 사용자 이름쪽 변경 */}
+            {user?.username || '사용자 이름'} 
+          </Text>
           <TouchableOpacity style={styles.editButton}>
-            <Text style={styles.editButtonText}>프로필 수정</Text>
-          </TouchableOpacity>
-        </View>
+          <Text style={styles.editButtonText}>닉네임 수정</Text>
+      </TouchableOpacity>
+    </View>
       </View>
 
       <View style={styles.statsSection}>

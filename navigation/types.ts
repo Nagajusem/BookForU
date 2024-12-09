@@ -1,6 +1,18 @@
 export type RootStackParamList = {
   Auth: undefined;
-  Main: undefined;
+  Main: {
+    screen: string;
+    params?: {
+      screen: string;
+      params: {
+        roomId: number;
+        productTitle: string;
+      };
+    };
+  };
+  HomeMain: undefined;
+  Search: undefined;
+  Product: { item: Product };
 };
 
 export type MainTabParamList = {
@@ -8,6 +20,14 @@ export type MainTabParamList = {
   Sell: undefined;
   Chat: undefined;
   MyPage: undefined;
+};
+
+export type ChatNavigatorParamList = {
+  ChatList: undefined;
+  ChatRoom: {
+    roomId: number;
+    productTitle: string;
+  };
 };
 
 export type AuthStackParamList = {
@@ -23,7 +43,9 @@ export interface Product {
   handonhand: string;
   description: string;
   seller_name: string;
+  seller_id: number; 
   created_at: string;
+  images: string[];
 }
 
 export type HomeStackParamList = {

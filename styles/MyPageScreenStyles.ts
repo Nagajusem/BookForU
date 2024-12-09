@@ -36,6 +36,12 @@ export const myPageScreenStyles = StyleSheet.create({
   profileName: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  profileId: {
+    fontSize: 14,
+    color: '#666',
     marginBottom: 8,
   },
   editButton: {

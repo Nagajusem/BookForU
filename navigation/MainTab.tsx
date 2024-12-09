@@ -1,15 +1,15 @@
-// MainTab.tsx
+
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
-import HomeScreen from '../screens/ShopScreens/HomeScreen';
-import SellScreen from '../screens/ShopScreens/SellScreen';
-import ChatScreen from '../screens/ShopScreens/ChatScreen';
-import MyPageScreen from '../screens/ShopScreens/MyPageScreen';
-import SearchScreen from '../screens/ShopScreens/SearchScreen';
-import ProductScreen from '../screens/ShopScreens/ProductScreen';
+import HomeScreen from '../screens/MainScreens/HomeScreen';
+import SellScreen from '../screens/MainScreens/SellScreen';
+import MyPageScreen from '../screens/MainScreens/MyPageScreen';
+import SearchScreen from '../screens/MainScreens/SearchScreen';
+import ProductScreen from '../screens/MainScreens/ProductScreen';
+import ChatNavigator from './ChatNavigator';
 import { HomeStackParamList } from './types';
 
 const Tab = createBottomTabNavigator();
@@ -41,7 +41,7 @@ const MainTab = () => {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: '#FF6B6B',
+        tabBarActiveTintColor: '#0b6799',
         tabBarInactiveTintColor: '#666666',
         headerShown: false
       }}
@@ -68,7 +68,7 @@ const MainTab = () => {
       />
       <Tab.Screen
         name="Chat"
-        component={ChatScreen}
+        component={ChatNavigator}
         options={{
           title: '채팅',
           tabBarIcon: ({ color }) => (
@@ -86,6 +86,7 @@ const MainTab = () => {
           ),
         }}
       />
+
     </Tab.Navigator>
   );
 };

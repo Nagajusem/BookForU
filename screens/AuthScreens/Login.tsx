@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Image
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -54,7 +55,10 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
         style={styles.keyboardAvoid}
       >
         <View style={styles.content}>
-          <Text style={styles.title}>BookForU</Text>
+          <Image
+            source={require('../../assets/bookforu.png')} 
+            style={styles.logo}
+          />
           
           <View style={styles.inputContainer}>
             <TextInput
@@ -107,7 +111,7 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#dec8ac',
   },
   keyboardAvoid: {
     flex: 1,
@@ -118,14 +122,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 40,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+  logoContainer: {
+    alignItems: 'center',
     marginBottom: 40,
-    color: '#1a1a1a',
-    textAlign: 'center',
+  },
+  logo: {
+    width: 340, 
+    height: 200,
+    resizeMode: 'contain',
   },
   inputContainer: {
+    width: '100%',
     marginBottom: 24,
   },
   input: {

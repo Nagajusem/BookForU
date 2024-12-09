@@ -124,6 +124,47 @@ export const productService = {
       }
     });
     return response.data;
+  },
+
+  // 이미지 등록
+  uploadImages: async (images: FormData) => {
+    const response = await api.post('/upload', images, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // createProduct: async (productData: any) => {
+  //   const response = await api.post('/products', productData);
+  //   return response.data;
+  // }
+};
+
+export const chatService = {
+  getMessages: async (roomId: number) => {
+    try {
+      const response = await api.get(`http://10.0.2.2:3000/api/chatrooms/${roomId}/messages`);
+      return response.data;
+    } catch (error) {
+      console.error('메시지 조회 실패:', error);
+      throw error;
+    }
+  },
+  
+  createChatRoom: async (productId: number, buyerId: number, sellerId: number) => {
+    try {
+      const response = await api.post('http://10.0.2.2:3000/api/chatrooms', {
+        product_id: productId,
+        buyer_id: buyerId,
+        seller_id: sellerId
+      });
+      return response.data;
+    } catch (error) {
+      console.error('채팅방 생성 실패:', error);
+      throw error;
+    }
   }
 };
 

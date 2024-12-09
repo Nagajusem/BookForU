@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authService } from '../services/api';
+import api, { authService } from '../services/api';
 import axios from 'axios';
 
 interface AuthContextType {
@@ -28,11 +28,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const token = await authService.getToken();
       console.log('Current token:', token); // 토큰 출력
       if (token) {
-        setIsLoggedIn(true);
-        console.log('User is logged in'); // 로그인 상태 출력
+        // 토큰이 있을 때 사용자 정보를 가져오는 API 호출
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        try {
+          const response = await api.get('/api/auth/me'); // 서버에 사용자 정보를 요청하는 엔드포인트
+          setUser(response.data.user);
+          setIsLoggedIn(true);
+        } catch (error) {
+          console.error('Failed to fetch user info:', error);
+          await authService.removeToken();
+          setIsLoggedIn(false);
+        }
       } else {
-        console.log('No token found, user is not logged in'); // 비로그인 상태 출력 
+        console.log('No token found, user is not logged in');
       }
+  
     } catch (error) {
       console.error('Token check failed:', error);
     } finally {
@@ -46,7 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       const response = await authService.login({ username, password });
       console.log('Login response:', response);
-      
+      console.log('Logged in user:', response.user); // 디버깅용 로그
       if (!response || !response.token) {
         throw new Error('Invalid response from server');
       }
