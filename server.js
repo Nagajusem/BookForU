@@ -9,11 +9,8 @@ const app = express();
 const http = require('http');
 const { Server } = require('socket.io');
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
+const io = require('socket.io')(server, {
+  cors: { origin: "*" }
 });
 
 // 이미지 저장을 위한 multer 설정
@@ -28,7 +25,13 @@ const upload = multer({ storage: storage });
 
 app.use('/uploads', express.static('uploads'));
 
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
 app.use(express.json());
 
 // MySQL 연결 설정
@@ -75,6 +78,29 @@ const CREATE_MESSAGES_TABLE = `
     FOREIGN KEY (sender_id) REFERENCES users(id)
   )
 `;
+
+// 메시지 저장 쿼리 준비
+const saveMessage = async (chatroom_id, sender_id, content) => {
+  try {
+    const [result] = await connection.promise().query(
+      'INSERT INTO messages (chatroom_id, sender_id, content) VALUES (?, ?, ?)',
+      [chatroom_id, sender_id, content]
+    );
+
+    const [messageData] = await connection.promise().query(
+      `SELECT m.*, u.username as sender_name 
+       FROM messages m 
+       JOIN users u ON m.sender_id = u.id 
+       WHERE m.id = ?`,
+      [result.insertId]
+    );
+
+    return messageData[0];
+  } catch (error) {
+    console.error('Message save error:', error);
+    throw error;
+  }
+};
 
 // 테이블 생성 실행
 connection.query(CREATE_CHATROOMS_TABLE);
@@ -351,45 +377,45 @@ app.get('/api/products/search', async (req, res) => {
 
 // WebSocket 연결 처리
 io.on('connection', (socket) => {
-  console.log('New client connected');
+  console.log('New client connected:', socket.id);
 
-  // 채팅방 참여
-  socket.on('join_room', (roomId) => {
+  socket.on('join', async (roomId) => {
+    console.log(`Client ${socket.id} joining room ${roomId}`);
     socket.join(roomId);
-    console.log(`User joined room: ${roomId}`);
-  });
-
-  // 새 메시지 수신 및 브로드캐스트
-  socket.on('send_message', async (data) => {
+    
     try {
-      const { chatroom_id, sender_id, content } = data;
-      
-      // DB에 메시지 저장
-      const [result] = await connection.promise().query(
-        'INSERT INTO messages (chatroom_id, sender_id, content) VALUES (?, ?, ?)',
-        [chatroom_id, sender_id, content]
-      );
-
-      // 저장된 메시지 정보 조회
-      const [messageData] = await connection.promise().query(
+      const [messages] = await connection.promise().query(
         `SELECT m.*, u.username as sender_name 
          FROM messages m 
          JOIN users u ON m.sender_id = u.id 
-         WHERE m.id = ?`,
-        [result.insertId]
+         WHERE m.chatroom_id = ?
+         ORDER BY m.created_at ASC`,
+        [roomId]
       );
-
-      // 채팅방의 모든 참여자에게 메시지 브로드캐스트
-      io.to(chatroom_id.toString()).emit('receive_message', messageData[0]);
+      console.log('Fetched messages for room:', messages);
+      socket.emit('load_messages', messages);
     } catch (error) {
-      console.error('Message handling error:', error);
+      console.error('Error loading messages:', error);
     }
   });
 
-  socket.on('disconnect', () => {
-    console.log('Client disconnected');
+  socket.on('message', async (data) => {
+    console.log('Received message data:', data);
+    try {
+      const savedMessage = await saveMessage(
+        data.roomId,
+        data.sender.id,
+        data.content
+      );
+      console.log('Saved message:', savedMessage);
+      io.to(data.roomId).emit('message', savedMessage);
+    } catch (error) {
+      console.error('Error saving message:', error);
+      socket.emit('message_error', { message: '메시지 저장에 실패했습니다.' });
+    }
   });
 });
+
 
 // 채팅방 생성 API
 app.post('/api/chatrooms', async (req, res) => {

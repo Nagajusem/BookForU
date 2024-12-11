@@ -8,14 +8,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import io, { Socket } from 'socket.io-client';
 import { useAuth } from '../../context/AuthContext';
 import { ChatRoomStyles as styles } from '../../styles/ChatRoomStyles';
-import { CommonStyles as Cstyles } from '../../styles/CommonStyles'
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import axios from 'axios';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ChatNavigatorParamList } from '../../navigation/types';
 
 interface Message {
   id: number;
@@ -33,7 +33,7 @@ interface ChatRoomScreenProps {
       productTitle: string;
     };
   };
-  navigation: any;
+  navigation: NativeStackNavigationProp<ChatNavigatorParamList, 'ChatRoom'>;
 }
 
 const ChatRoomScreen = ({ route, navigation }: ChatRoomScreenProps) => {
@@ -41,53 +41,59 @@ const ChatRoomScreen = ({ route, navigation }: ChatRoomScreenProps) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
   const socketRef = useRef<Socket>();
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    // 소켓 연결 설정
+    // 소켓 연결 시도 로그
+    console.log('Attempting socket connection...');
+    
     socketRef.current = io('http://10.0.2.2:3000');
     
-    // 채팅방 참여
-    socketRef.current.emit('join_room', roomId);
+    socketRef.current.on('connect', () => {
+      console.log('Socket connected successfully');
+      socketRef.current?.emit('join', roomId);
+    });
     
-    // 이전 메시지 로드
-    loadMessages();
+    // 이전 메시지 로드 확인
+    socketRef.current.on('load_messages', (loadedMessages: Message[]) => {
+      console.log('Loaded messages:', loadedMessages);
+      setMessages(loadedMessages);
+      if (loadedMessages.length > 0) {
+        setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
+      }
+    });
 
-    // 새 메시지 수신 리스너
-    socketRef.current.on('receive_message', (message: Message) => {
+    // 새 메시지 수신 확인
+    socketRef.current.on('message', (message: Message) => {
+      console.log('Received new message:', message);
       setMessages(prev => [...prev, message]);
-      flatListRef.current?.scrollToEnd();
+      setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
+    });
+
+    socketRef.current.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
     });
 
     return () => {
+      console.log('Cleaning up socket connection');
       socketRef.current?.disconnect();
     };
   }, [roomId]);
 
-  const loadMessages = async () => {
-    try {
-      const response = await axios.get(`/api/chatrooms/${roomId}/messages`);
-      setMessages(response.data);
-      setLoading(false);
-      setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
-    } catch (error) {
-      console.error('메시지 로드 실패:', error);
-      setLoading(false);
-    }
-  };
-
   const sendMessage = () => {
-    if (!newMessage.trim() || !socketRef.current) return;
+    if (!newMessage.trim() || !socketRef.current || !user) return;
 
     const messageData = {
-      chatroom_id: roomId,
-      sender_id: user?.id,
-      content: newMessage.trim()
+      roomId,
+      content: newMessage.trim(),
+      sender: {
+        id: user.id,
+        name: user.username
+      }
     };
 
-    socketRef.current.emit('send_message', messageData);
+    socketRef.current.emit('message', messageData);
     setNewMessage('');
   };
 
@@ -118,60 +124,44 @@ const ChatRoomScreen = ({ route, navigation }: ChatRoomScreenProps) => {
     );
   };
 
-  if (loading) {
-    return (
-      <View style={Cstyles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
-
   return (
-    <SafeAreaView style={Cstyles.container}>
-      <View style={Cstyles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{productTitle}</Text>
       </View>
-  
+
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoid}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
-        <View style={styles.innerContainer}>
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            renderItem={renderMessage}
-            keyExtractor={item => item.id.toString()}
-            contentContainerStyle={styles.messageList}
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={item => item.id.toString()}
+        />
+
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            value={newMessage}
+            onChangeText={setNewMessage}
+            placeholder="메시지를 입력하세요..."
+            multiline
           />
-  
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              value={newMessage}
-              onChangeText={setNewMessage}
-              placeholder="메시지를 입력하세요..."
-              multiline
+          <TouchableOpacity 
+            onPress={sendMessage}
+            disabled={!newMessage.trim()}
+          >
+            <Icon 
+              name="send" 
+              size={24} 
+              color={newMessage.trim() ? "#007AFF" : "#999"} 
             />
-            <TouchableOpacity 
-              style={styles.sendButton} 
-              onPress={sendMessage}
-              disabled={!newMessage.trim()}
-            >
-              <Icon 
-                name="send" 
-                size={24} 
-                color={newMessage.trim() ? "#007AFF" : "#999"} 
-              />
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
