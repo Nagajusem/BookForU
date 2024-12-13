@@ -43,6 +43,7 @@ const ChatRoomScreen = ({ route, navigation }: ChatRoomScreenProps) => {
   const [newMessage, setNewMessage] = useState('');
   const socketRef = useRef<Socket>();
   const flatListRef = useRef<FlatList>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
     // 소켓 연결 시도 로그
@@ -82,19 +83,55 @@ const ChatRoomScreen = ({ route, navigation }: ChatRoomScreenProps) => {
   }, [roomId]);
 
   const sendMessage = () => {
-    if (!newMessage.trim() || !socketRef.current || !user) return;
-
+    if (!newMessage.trim() || !socketRef.current) return;
+  
+    console.log('Sending message:', {
+      chatroom_id: roomId,
+      sender_id: user?.id,
+      content: newMessage.trim()
+    });
+  
+    // 메시지 전송 전에 유효성 검사
+    if (!user?.id || !roomId) {
+      console.error('Missing user ID or room ID');
+      return;
+    }
+  
     const messageData = {
-      roomId,
-      content: newMessage.trim(),
-      sender: {
-        id: user.id,
-        name: user.username
-      }
+      chatroom_id: roomId,
+      sender_id: user.id,
+      content: newMessage.trim()
     };
-
-    socketRef.current.emit('message', messageData);
+  
+    // 소켓 연결 상태 확인
+    if (!socketRef.current.connected) {
+      console.error('Socket not connected. Attempting to reconnect...');
+      socketRef.current.connect();
+      return;
+    }
+  
+    socketRef.current.emit('send_message', messageData);
+  
+    // Optimistic update (바로 UI에 반영)
+    const optimisticMessage = {
+      id: Date.now(), // 임시 ID
+      content: newMessage.trim(),
+      sender_id: user.id,
+      sender_name: user.username,
+      chatroom_id: roomId,
+      created_at: new Date().toISOString()
+    };
+  
+    setMessages(prev => [...prev, optimisticMessage]);
     setNewMessage('');
+    flatListRef.current?.scrollToEnd();
+  
+    // 에러 핸들링
+    socketRef.current.once('error', (error) => {
+      console.error('Failed to send message:', error);
+      // 에러 발생 시 메시지 롤백
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+    });
   };
 
   const renderMessage = ({ item }: { item: Message }) => {

@@ -2,7 +2,6 @@ const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 const app = express();
@@ -10,7 +9,10 @@ const http = require('http');
 const { Server } = require('socket.io');
 const server = http.createServer(app);
 const io = require('socket.io')(server, {
-  cors: { origin: "*" }
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
 });
 
 // 이미지 저장을 위한 multer 설정
@@ -24,14 +26,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 app.use('/uploads', express.static('uploads'));
-
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
-
+app.use(cors({}));
 app.use(express.json());
 
 // MySQL 연결 설정
@@ -148,7 +143,7 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// 로그인
+// 로그인 처리
 app.post('/api/auth/login', async (req, res) => {
   console.log('Login request received:', req.body);
   const { username, password } = req.body;
@@ -172,15 +167,8 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ message: '아이디 또는 비밀번호가 잘못되었습니다.' });
     }
 
-    // JWT 토큰 생성
-    const token = jwt.sign(
-      { id: user.id, username: user.username },
-      'your_jwt_secret_key',
-      { expiresIn: '24h' }
-    );
-
+    // 로그인 성공 시 사용자 정보만 반환
     res.json({
-      token,
       user: {
         id: user.id,
         username: user.username
@@ -192,52 +180,49 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-//회원 가입
+// 회원가입
 app.post('/api/auth/register', async (req, res) => {
-    console.log('Register request received:', req.body);
-    const { username, password } = req.body;
-  
-    try {
-      // 1. 기존 사용자 확인
-      const [existingUsers] = await connection.promise().query(
-        'SELECT * FROM users WHERE username = ?',
-        [username]
-      );
-  
-      if (existingUsers.length > 0) {
-        return res.status(400).json({ message: '이미 존재하는 사용자입니다.' });
-      }
-  
-      // 2. 비밀번호 해시화
-      const hashedPassword = await bcrypt.hash(password, 10);
-  
-      // 3. 새 사용자 삽입
-      const [result] = await connection.promise().query(
-        'INSERT INTO users (username, password, created_at) VALUES (?, ?, NOW())',
-        [username, hashedPassword]
-      );
-  
-      res.status(201).json({
-        message: '회원가입이 완료되었습니다.',
-        user: { id: result.insertId, username }
-      });
-  
-    } catch (error) {
-      console.error('Register error:', error);
-      res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  console.log('Register request received:', req.body);
+  const { username, password } = req.body;
+
+  try {
+    // 기존 사용자 확인
+    const [existingUsers] = await connection.promise().query(
+      'SELECT * FROM users WHERE username = ?',
+      [username]
+    );
+
+    if (existingUsers.length > 0) {
+      return res.status(400).json({ message: '이미 존재하는 사용자입니다.' });
     }
+
+    // 비밀번호 해시화
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 새 사용자 삽입
+    const [result] = await connection.promise().query(
+      'INSERT INTO users (username, password, created_at) VALUES (?, ?, NOW())',
+      [username, hashedPassword]
+    );
+
+    res.status(201).json({
+      message: '회원가입이 완료되었습니다.',
+      user: { 
+        id: result.insertId, 
+        username 
+      }
+    });
+
+  } catch (error) {
+    console.error('Register error:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
 });
 
 // 회원 탈퇴
 app.delete('/api/auth/withdraw', async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ message: '인증 정보가 없습니다.' });
-    }
-
-    const decoded = jwt.verify(token, 'your_jwt_secret_key');
-    const userId = decoded.id;
+    const { userId } = req.body; // 클라이언트에서 userId를 직접 전달받음
 
     await connection.promise().query(
       'DELETE FROM users WHERE id = ?',
@@ -251,18 +236,14 @@ app.delete('/api/auth/withdraw', async (req, res) => {
   }
 });
 
-// 사용자 정보를 가져오는 엔드포인트
-app.get('/api/auth/me', async (req, res) => {
+// 사용자 정보 조회 엔드포인트
+app.get('/api/auth/me/:userId', async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ message: '인증 정보가 없습니다.' });
-    }
-
-    const decoded = jwt.verify(token, 'your_jwt_secret_key');
+    const userId = req.params.userId;
+    
     const [user] = await connection.promise().query(
       'SELECT id, username FROM users WHERE id = ?',
-      [decoded.id]
+      [userId]
     );
 
     if (!user[0]) {
@@ -309,18 +290,13 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// 상품 등록
 app.post('/api/products', async (req, res) => {
-  const { title, price, status, handonhand, description, images } = req.body;
-  const token = req.headers.authorization?.split(' ')[1];
+  const { title, price, status, handonhand, description, images, userId } = req.body;
 
   try {
-    const decoded = jwt.verify(token, 'your_jwt_secret_key');
-    const seller_id = decoded.id;
-
     const [result] = await connection.promise().query(
       'INSERT INTO products (title, price, status, handonhand, description, seller_id, images) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [title, price, status, handonhand, description, seller_id, JSON.stringify(images)]
+      [title, price, status, handonhand, description, userId, JSON.stringify(images)]
     );
 
     res.status(201).json({ 
@@ -332,6 +308,7 @@ app.post('/api/products', async (req, res) => {
     res.status(500).json({ message: '상품 등록에 실패했습니다.' });
   }
 });
+
 
 // 검색기능
 app.get('/api/products/search', async (req, res) => {
@@ -379,40 +356,65 @@ app.get('/api/products/search', async (req, res) => {
 io.on('connection', (socket) => {
   console.log('New client connected:', socket.id);
 
-  socket.on('join', async (roomId) => {
-    console.log(`Client ${socket.id} joining room ${roomId}`);
+  socket.on('join_room', (roomId) => {
     socket.join(roomId);
-    
+    console.log(`User ${socket.id} joined room: ${roomId}`);
+  });
+
+  socket.on('send_message', async (data) => {
     try {
-      const [messages] = await connection.promise().query(
+      console.log('Received message data:', data); // 데이터 로깅
+
+      const { chatroom_id, sender_id, content } = data;
+      
+      if (!chatroom_id || !sender_id || !content) {
+        console.error('Missing required message data');
+        socket.emit('error', { message: 'Missing required message data' });
+        return;
+      }
+
+      // 메시지 저장 전에 채팅방과 사용자 존재 여부 확인
+      const [roomExists] = await connection.promise().query(
+        'SELECT id FROM chatrooms WHERE id = ?',
+        [chatroom_id]
+      );
+
+      if (!roomExists.length) {
+        console.error('Chat room not found:', chatroom_id);
+        socket.emit('error', { message: 'Chat room not found' });
+        return;
+      }
+
+      // 메시지 저장
+      const [result] = await connection.promise().query(
+        'INSERT INTO messages (chatroom_id, sender_id, content, created_at) VALUES (?, ?, ?, NOW())',
+        [chatroom_id, sender_id, content]
+      );
+
+      // 저장된 메시지 조회
+      const [messageData] = await connection.promise().query(
         `SELECT m.*, u.username as sender_name 
          FROM messages m 
          JOIN users u ON m.sender_id = u.id 
-         WHERE m.chatroom_id = ?
-         ORDER BY m.created_at ASC`,
-        [roomId]
+         WHERE m.id = ?`,
+        [result.insertId]
       );
-      console.log('Fetched messages for room:', messages);
-      socket.emit('load_messages', messages);
+
+      const newMessage = messageData[0];
+      console.log('Saved message:', newMessage); // 저장된 메시지 로깅
+
+      // 채팅방의 모든 참여자에게 메시지 브로드캐스트
+      io.to(chatroom_id.toString()).emit('receive_message', newMessage);
+      console.log('Message broadcasted to room:', chatroom_id);
+
     } catch (error) {
-      console.error('Error loading messages:', error);
+      console.error('Message handling error:', error);
+      socket.emit('error', { message: 'Failed to send message' });
     }
   });
 
-  socket.on('message', async (data) => {
-    console.log('Received message data:', data);
-    try {
-      const savedMessage = await saveMessage(
-        data.roomId,
-        data.sender.id,
-        data.content
-      );
-      console.log('Saved message:', savedMessage);
-      io.to(data.roomId).emit('message', savedMessage);
-    } catch (error) {
-      console.error('Error saving message:', error);
-      socket.emit('message_error', { message: '메시지 저장에 실패했습니다.' });
-    }
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
   });
 });
 
@@ -569,6 +571,6 @@ app.post('/api/chatrooms', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

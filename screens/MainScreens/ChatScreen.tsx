@@ -12,10 +12,10 @@ import {
   Alert,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
-import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ChatNavigatorParamList } from '../../navigation/types';
+import { chatService } from '../../services/api';
 
 interface ChatRoom {
   id: number;
@@ -44,10 +44,10 @@ const ChatScreen = () => {
 
   const loadChatRooms = async () => {
     if (!user) return;
-
+  
     try {
-      const response = await axios.get(`http://10.0.2.2:3000/api/chatrooms/user/${user.id}`);
-      setChatRooms(response.data);
+      const chatRooms = await chatService.getChatRooms(user.id);
+      setChatRooms(chatRooms);
     } catch (error) {
       console.error('채팅방 목록 로드 실패:', error);
       Alert.alert('오류', '채팅방 목록을 불러오는데 실패했습니다.');

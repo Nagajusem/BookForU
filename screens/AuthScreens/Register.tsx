@@ -84,6 +84,16 @@ const RegisterScreen = ({ navigation }: RegisterScreenProps) => {
                 autoCapitalize="none"
                 returnKeyType="next"
               />
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="이메일을 입력해주세요"
+                placeholderTextColor="#666"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                returnKeyType="next"
+              />
 
               <Text style={styles.label}>비밀번호</Text>
               <TextInput

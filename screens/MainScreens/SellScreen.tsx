@@ -19,6 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import { useAuth } from '../../context/AuthContext';
 
 interface ImageType {
   uri: string;
@@ -33,6 +34,7 @@ const SellScreen = () => {
   const [handonhand, setHandonhand] = useState('O');
   const navigation = useNavigation<SellScreenNavigationProp>();
   const [images, setImages] = useState<ImageType[]>([]);
+  const { user } = useAuth();
   const handleAddImage = () => {
     Alert.alert(
       '사진 추가',
@@ -90,8 +92,12 @@ const SellScreen = () => {
       return;
     }
 
+    if (!user) {  // 사용자가 로그인하지 않은 경우 처리
+      Alert.alert('알림', '로그인이 필요한 서비스입니다.');
+      return;
+    }
+
     try {
-      // 이미지 업로드
       const formData = new FormData();
       images.forEach((image, index) => {
         formData.append('images', {
@@ -113,8 +119,8 @@ const SellScreen = () => {
         images: imageUrls
       };
 
-      // 업로드 후 초기화
-      await productService.createProduct(productData);
+      // userId를 두 번째 인자로 전달
+      await productService.createProduct(productData, user.id);
 
       setTitle('');
       setPrice('');
@@ -127,7 +133,7 @@ const SellScreen = () => {
         {
           text: '확인',
           onPress: () => {
-            navigation.goBack; // 나중에 navigation.navigate('Home'); 왜 안되는지 확인
+            navigation.goBack();
           }
         }
       ]);

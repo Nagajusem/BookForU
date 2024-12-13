@@ -52,9 +52,14 @@ export type HomeStackParamList = {
   HomeMain: undefined;
   Search: undefined;
   Product: {
-    item: Product;
+    item: FormattedProduct; // Product에서 FormattedProduct로 변경
   };
 };
+
+export interface FormattedProduct extends Omit<Product, 'images'> {
+  imageUrls: string[];
+  thumbnailUrl: string;
+}
 
 declare global {
   namespace ReactNavigation {

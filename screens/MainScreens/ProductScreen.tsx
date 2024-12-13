@@ -11,12 +11,12 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { HomeStackParamList } from '../../navigation/types';
+import { HomeStackParamList,FormattedProduct } from '../../navigation/types';
 import { RouteProp } from '@react-navigation/native';
 import { ProductScreenStyles as styles } from '../../styles/ProductScreenStyles';
 import { CommonStyles as Cstyles } from '../../styles/CommonStyles'
 import { useAuth } from '../../context/AuthContext';
-import axios from 'axios';
+import { chatService } from '../../services/api';
 
 type ProductScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList, 'Product'>;
 type ProductScreenRouteProp = RouteProp<HomeStackParamList, 'Product'>;
@@ -32,7 +32,6 @@ const ProductScreen = ({ navigation, route }: ProductScreenProps) => {
   const { item } = route.params;
   const { user } = useAuth();
   const [isSeller, setIsSeller] = useState(user?.id === item.seller_id);
-  const imageUrls = item.images || [];
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('ko-KR') + '원';
@@ -45,24 +44,19 @@ const ProductScreen = ({ navigation, route }: ProductScreenProps) => {
     }
   
     try {
-      const response = await axios.post('http://10.0.2.2:3000/api/chatrooms', {
-        product_id: item.id,
-        buyer_id: user.id,
-        seller_id: item.seller_id
-      });
+      const chatRoom = await chatService.createChatRoom(item.id, user.id, item.seller_id);
   
       navigation.navigate('Main', {
         screen: 'Chat',
         params: {
           screen: 'ChatRoom',
           params: {
-            roomId: response.data.id,
+            roomId: chatRoom.id,
             productTitle: item.title
           }
         }
       } as any); // 임시로 타입 에러를 해결하기 위해 as any 사용
     } catch (error) {
-      console.error('Chat creation error:', error);
       Alert.alert('오류', '채팅방 생성에 실패했습니다.');
     }
   };
@@ -136,22 +130,18 @@ const ProductScreen = ({ navigation, route }: ProductScreenProps) => {
           showsHorizontalScrollIndicator={false}
           style={[styles.imageContainer, { height: SCREEN_WIDTH }]}
         >
-          {item.images && item.images.length > 0 ? (
-            item.images.map((imageUrl: string, index: number) => (
+          {item.imageUrls.map((url, index) => (
+            <View key={index} style={{ width: SCREEN_WIDTH }}>
               <Image
-                key={index}
-                source={{ uri: `http://10.0.2.2:3000${imageUrl}` }}
-                style={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH }}
-                resizeMode="cover"
+                source={{ uri: url }}
+                style={{
+                  width: SCREEN_WIDTH,
+                  height: SCREEN_WIDTH,
+                  resizeMode: 'cover'
+                }}
               />
-            ))
-          ) : (
-            <Image
-              source={{ uri: '/api/placeholder/400/400' }}
-              style={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH }}
-              resizeMode="cover"
-            />
-          )}
+            </View>
+          ))}
         </ScrollView>
         
         <View style={styles.contentContainer}>
