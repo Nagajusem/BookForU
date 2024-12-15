@@ -22,8 +22,14 @@ type RegisterScreenProps = {
 
 const RegisterScreen = ({ navigation }: RegisterScreenProps) => {
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   const handleRegister = async() => {
     // 기본적인 유효성 검사
@@ -31,7 +37,12 @@ const RegisterScreen = ({ navigation }: RegisterScreenProps) => {
       Alert.alert('오류', '모든 필드를 입력해주세요.');
       return;
     }
-  
+
+    if (!validateEmail(email)) {
+      Alert.alert('오류', '올바른 이메일 형식이 아닙니다.');
+      return;
+    }
+
     if (password.length < 6) {
       Alert.alert('오류', '비밀번호는 6자 이상이어야 합니다.');
       return;
@@ -43,7 +54,7 @@ const RegisterScreen = ({ navigation }: RegisterScreenProps) => {
     }
   
     try {
-      const response = await authService.register({ username, password });
+      const response = await authService.register({ username, email ,password });
       Alert.alert('성공', '회원가입이 완료되었습니다.', [
         {
           text: '확인',
@@ -89,8 +100,8 @@ const RegisterScreen = ({ navigation }: RegisterScreenProps) => {
                 style={styles.input}
                 placeholder="이메일을 입력해주세요"
                 placeholderTextColor="#666"
-                value={username}
-                onChangeText={setUsername}
+                value={email}
+                onChangeText={setEmail}
                 autoCapitalize="none"
                 returnKeyType="next"
               />

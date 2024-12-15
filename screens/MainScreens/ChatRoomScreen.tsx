@@ -8,23 +8,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
-import io, { Socket } from 'socket.io-client';
 import { useAuth } from '../../context/AuthContext';
 import { ChatRoomStyles as styles } from '../../styles/ChatRoomStyles';
+import { CommonStyles as Cstyles } from '../../styles/CommonStyles';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ChatNavigatorParamList } from '../../navigation/types';
-
-interface Message {
-  id: number;
-  content: string;
-  sender_id: number;
-  sender_name: string;
-  created_at: string;
-  chatroom_id: number;
-}
+import { chatService, Message, SocketMessage } from '../../services/api';
 
 interface ChatRoomScreenProps {
   route: {
@@ -33,7 +23,7 @@ interface ChatRoomScreenProps {
       productTitle: string;
     };
   };
-  navigation: NativeStackNavigationProp<ChatNavigatorParamList, 'ChatRoom'>;
+  navigation: any;
 }
 
 const ChatRoomScreen = ({ route, navigation }: ChatRoomScreenProps) => {
@@ -41,97 +31,59 @@ const ChatRoomScreen = ({ route, navigation }: ChatRoomScreenProps) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const socketRef = useRef<Socket>();
+  const [loading, setLoading] = useState(true);
   const flatListRef = useRef<FlatList>(null);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  const handleNewMessage = (message: Message) => {
+    setMessages(prev => [...prev, message]);
+    setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
+  };
 
   useEffect(() => {
-    // 소켓 연결 시도 로그
-    console.log('Attempting socket connection...');
-    
-    socketRef.current = io('http://10.0.2.2:3000');
-    
-    socketRef.current.on('connect', () => {
-      console.log('Socket connected successfully');
-      socketRef.current?.emit('join', roomId);
-    });
-    
-    // 이전 메시지 로드 확인
-    socketRef.current.on('load_messages', (loadedMessages: Message[]) => {
-      console.log('Loaded messages:', loadedMessages);
-      setMessages(loadedMessages);
-      if (loadedMessages.length > 0) {
-        setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
-      }
-    });
-
-    // 새 메시지 수신 확인
-    socketRef.current.on('message', (message: Message) => {
-      console.log('Received new message:', message);
-      setMessages(prev => [...prev, message]);
-      setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
-    });
-
-    socketRef.current.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
-    });
+    chatService.initializeSocket();
+    chatService.joinChatRoom(roomId);
+    chatService.subscribeToMessages(roomId, handleNewMessage);
+    loadMessages();
 
     return () => {
-      console.log('Cleaning up socket connection');
-      socketRef.current?.disconnect();
+      chatService.unsubscribeFromMessages(roomId);
     };
   }, [roomId]);
 
-  const sendMessage = () => {
-    if (!newMessage.trim() || !socketRef.current) return;
-  
-    console.log('Sending message:', {
-      chatroom_id: roomId,
-      sender_id: user?.id,
-      content: newMessage.trim()
-    });
-  
-    // 메시지 전송 전에 유효성 검사
-    if (!user?.id || !roomId) {
-      console.error('Missing user ID or room ID');
-      return;
+  const loadMessages = async () => {
+    try {
+      const response = await chatService.getChatMessages(roomId);
+      setMessages(response);
+      setLoading(false);
+      setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+      setLoading(false);
     }
-  
-    const messageData = {
+  };
+
+  const sendMessage = () => {
+    if (!newMessage.trim() || !user) return;
+
+    const messageData: SocketMessage = {
       chatroom_id: roomId,
       sender_id: user.id,
       content: newMessage.trim()
     };
-  
-    // 소켓 연결 상태 확인
-    if (!socketRef.current.connected) {
-      console.error('Socket not connected. Attempting to reconnect...');
-      socketRef.current.connect();
-      return;
-    }
-  
-    socketRef.current.emit('send_message', messageData);
-  
-    // Optimistic update (바로 UI에 반영)
-    const optimisticMessage = {
-      id: Date.now(), // 임시 ID
-      content: newMessage.trim(),
-      sender_id: user.id,
+
+    // Optimistic update
+    const optimisticMessage: Message = {
+      id: Date.now(),
+      ...messageData,
       sender_name: user.username,
-      chatroom_id: roomId,
       created_at: new Date().toISOString()
     };
-  
+
     setMessages(prev => [...prev, optimisticMessage]);
     setNewMessage('');
     flatListRef.current?.scrollToEnd();
-  
-    // 에러 핸들링
-    socketRef.current.once('error', (error) => {
-      console.error('Failed to send message:', error);
-      // 에러 발생 시 메시지 롤백
-      setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
-    });
+
+    chatService.sendMessage(messageData);
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
@@ -161,10 +113,21 @@ const ChatRoomScreen = ({ route, navigation }: ChatRoomScreenProps) => {
     );
   };
 
+  if (loading) {
+    return (
+      <View style={Cstyles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
           <Icon name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{productTitle}</Text>
@@ -173,32 +136,37 @@ const ChatRoomScreen = ({ route, navigation }: ChatRoomScreenProps) => {
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoid}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={item => item.id.toString()}
-        />
-
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={newMessage}
-            onChangeText={setNewMessage}
-            placeholder="메시지를 입력하세요..."
-            multiline
+        <View style={styles.innerContainer}>
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderMessage}
+            keyExtractor={item => item.id.toString()}
+            contentContainerStyle={styles.messageList}
           />
-          <TouchableOpacity 
-            onPress={sendMessage}
-            disabled={!newMessage.trim()}
-          >
-            <Icon 
-              name="send" 
-              size={24} 
-              color={newMessage.trim() ? "#007AFF" : "#999"} 
+
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={newMessage}
+              onChangeText={setNewMessage}
+              placeholder="메시지를 입력하세요..."
+              multiline
             />
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.sendButton} 
+              onPress={sendMessage}
+              disabled={!newMessage.trim()}
+            >
+              <Icon 
+                name="send" 
+                size={24} 
+                color={newMessage.trim() ? "#007AFF" : "#999"} 
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

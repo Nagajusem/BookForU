@@ -50,30 +50,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (username: string, password: string) => {
     try {
       setIsLoading(true);
-      console.log('Login attempt with:', { username });
-      
       const response = await authService.login({ username, password });
-      console.log('Login response:', response);
       
-      if (!response || !response.user) {
-        throw new Error('Invalid response from server');
+      if (response.data && response.code === 200) {
+        const userData = {
+          id: response.data.id,
+          username: response.data.username
+        };
+        await AsyncStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+        setIsLoggedIn(true);
+      } else {
+        throw new Error('로그인 실패');
       }
-      
-      // 사용자 정보를 AsyncStorage에 저장
-      await AsyncStorage.setItem('user', JSON.stringify(response.user));
-      setUser(response.user);
-      setIsLoggedIn(true);
     } catch (error) {
-      console.error('Detailed login error:', error);
-      if (error instanceof Error) {
-        throw new Error(error.message || '로그인에 실패했습니다.');
-      }
+      console.error('Login error:', error);
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
-
+  
   const logout = async () => {
     try {
       await AsyncStorage.removeItem('user');
