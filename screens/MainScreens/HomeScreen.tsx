@@ -23,7 +23,7 @@ interface HomeScreenProps {
 }
 
 const HomeScreen = ({ navigation }: HomeScreenProps) => {
-  const [products, setProducts] = useState<FormattedProduct[]>([]); // Product를 FormattedProduct로 변경
+  const [products, setProducts] = useState<FormattedProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,12 +54,13 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
       />
       <View style={Cstyles.itemInfo}>
         <Text style={styles.itemTitle} numberOfLines={1}>
-          {item.title}
+          {item.title} 
+          {/* 여기에 가져온 책 이름이 들어가야함 */}
         </Text>
         <Text style={Cstyles.itemPrice}>
           {item.price.toLocaleString()}원
         </Text>
-        <Text style={styles.itemTime}>{item.created_at}</Text>
+        <Text style={styles.itemTime}>{item.published_date}</Text>
       </View>
     </TouchableOpacity>
   );

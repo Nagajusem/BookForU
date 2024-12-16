@@ -5,15 +5,17 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import HomeScreen from '../screens/MainScreens/HomeScreen';
+import BookSearchScreen from '../screens/MainScreens/BookSearchScreen';
 import SellScreen from '../screens/MainScreens/SellScreen';
 import MyPageScreen from '../screens/MainScreens/MyPageScreen';
 import SearchScreen from '../screens/MainScreens/SearchScreen';
 import ProductScreen from '../screens/MainScreens/ProductScreen';
 import ChatNavigator from './ChatNavigator';
-import { HomeStackParamList } from './types';
+import { HomeStackParamList, MainTabParamList } from './types';
 
-const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator<HomeStackParamList>();
+const Tab = createBottomTabNavigator<MainTabParamList>();
+const Stack = createNativeStackNavigator();
+
 
 // HomeStack 네비게이터
 const HomeStack = () => {
@@ -33,6 +35,15 @@ const HomeStack = () => {
       <Stack.Screen
         name="Product" component={ProductScreen} 
       />
+    </Stack.Navigator>
+  );
+};
+
+const SellStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="BookSearch" component={BookSearchScreen} />
+      <Stack.Screen name="Sell" component={SellScreen} />
     </Stack.Navigator>
   );
 };
@@ -57,8 +68,8 @@ const MainTab = () => {
         }}
       />
       <Tab.Screen
-        name="Sell"
-        component={SellScreen}
+        name="SellTab"  // 탭 이름 변경
+        component={SellStack}  // SellStack을 컴포넌트로 사용
         options={{
           title: '판매',
           tabBarIcon: ({ color }) => (

@@ -1,4 +1,3 @@
-// SellScreen.tsx 수정
 import React, { useState } from 'react';
 import { sellScreenStyles as styles } from '../../styles/SellScreenStyles';
 import { CommonStyles as Cstyles } from '../../styles/CommonStyles'
@@ -9,32 +8,46 @@ import {
   TextInput,
   ScrollView,
   Alert,
-  Platform,
+  StyleSheet,
   Image,
 } from 'react-native';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import { Picker } from '@react-native-picker/picker';
 import { productService } from '../../services/api';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/types';
+import { useNavigation, RouteProp } from '@react-navigation/native';
+import { MainTabParamList } from '../../navigation/types';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { useAuth } from '../../context/AuthContext';
+
+interface Book {
+  isbn: string;
+  title: string;
+  author: string;
+  publisher: string;
+  published_at: string;
+  category: string;
+}
 
 interface ImageType {
   uri: string;
 }
-type SellScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const SellScreen = () => {
-  const [title, setTitle] = useState('');
+type SellScreenRouteProp = RouteProp<MainTabParamList, 'Sell'>;
+
+interface SellScreenProps {
+  route: SellScreenRouteProp;
+}
+
+const SellScreen = ({ route }: SellScreenProps) => {
+  const bookInfo = route.params?.bookInfo;
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
-  const [status, setStatus] = useState('a');
-  const [handonhand, setHandonhand] = useState('O');
-  const navigation = useNavigation<SellScreenNavigationProp>();
+  const [book_condition, setbook_condition] = useState('A');
+  const [can_trade, setcan_trade] = useState('O');
   const [images, setImages] = useState<ImageType[]>([]);
   const { user } = useAuth();
+  const navigation = useNavigation();
+
   const handleAddImage = () => {
     Alert.alert(
       '사진 추가',
@@ -87,13 +100,13 @@ const SellScreen = () => {
   };
 
   const handleSubmit = async () => {
-    if (!title || !price || !description) {
-      Alert.alert('알림', '모든 필수 항목을 입력해주세요.');
+    if (!user) {
+      Alert.alert('알림', '로그인이 필요한 서비스입니다.');
       return;
     }
 
-    if (!user) {  // 사용자가 로그인하지 않은 경우 처리
-      Alert.alert('알림', '로그인이 필요한 서비스입니다.');
+    if (!bookInfo) {
+      Alert.alert('알림', '도서 정보가 필요합니다.');
       return;
     }
 
@@ -111,24 +124,17 @@ const SellScreen = () => {
       const imageUrls = uploadResponse.urls;
   
       const productData = {
-        title,
         price: parseInt(price),
-        status,
-        handonhand,
+        book_condition,
+        can_trade,
         description,
-        images: imageUrls
+        images: imageUrls,
+        isbn: bookInfo.isbn,
+        title: bookInfo.title
       };
 
-      // userId를 두 번째 인자로 전달
       await productService.createProduct(productData, user.id);
 
-      setTitle('');
-      setPrice('');
-      setDescription('');
-      setStatus('a'); 
-      setHandonhand('O');  
-      setImages([]); 
-  
       Alert.alert('성공', '상품이 등록되었습니다.', [
         {
           text: '확인',
@@ -145,6 +151,16 @@ const SellScreen = () => {
 
   return (
     <ScrollView style={Cstyles.container}>
+      {bookInfo && (
+        <View style={styles.bookInfoContainer}>
+          <View style={styles.bookDetails}>
+            <Text style={styles.bookTitle}>{bookInfo.title}</Text>
+            <Text style={styles.bookAuthor}>저자: {bookInfo.author}</Text>
+            <Text style={styles.bookCategory}>카테고리: {bookInfo.category}</Text>
+            <Text style={styles.bookIsbn}>ISBN: {bookInfo.isbn}</Text>
+          </View>
+        </View>
+      )}
       <View style={styles.imageSection}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {images.map((image, index) => (
@@ -179,13 +195,6 @@ const SellScreen = () => {
       <View style={styles.inputSection}>
         <TextInput
           style={Cstyles.input}
-          placeholder="제목"
-          value={title}
-          onChangeText={setTitle}
-        />
-        
-        <TextInput
-          style={Cstyles.input}
           placeholder="가격 설정"
           value={price}
           onChangeText={setPrice}
@@ -195,9 +204,9 @@ const SellScreen = () => {
         <View style={styles.pickerContainer}>
           <Text style={styles.pickerLabel}>상태 선택</Text>
           <Picker
-            selectedValue={status}
+            selectedValue={book_condition}
             style={styles.picker}
-            onValueChange={(itemValue) => setStatus(itemValue)}
+            onValueChange={(itemValue) => setbook_condition(itemValue)}
           >
             <Picker.Item label="A" value="A" />
             <Picker.Item label="B" value="B" />
@@ -210,12 +219,12 @@ const SellScreen = () => {
         <View style={styles.pickerContainer}>
           <Text style={styles.pickerLabel}>직거래 여부</Text>
           <Picker
-            selectedValue={handonhand}
+            selectedValue={can_trade}
             style={styles.picker}
-            onValueChange={(itemValue) => setHandonhand(itemValue)}
+            onValueChange={(itemValue) => setcan_trade(itemValue)}
           >
-            <Picker.Item label='O' value="O" />
-            <Picker.Item label='X' value="X" />
+            <Picker.Item label='O' value="true" />
+            <Picker.Item label='X' value="false" />
           </Picker>
         </View>
 

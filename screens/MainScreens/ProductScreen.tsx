@@ -31,7 +31,7 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 const ProductScreen = ({ navigation, route }: ProductScreenProps) => {
   const { item } = route.params;
   const { user } = useAuth();
-  const [isSeller, setIsSeller] = useState(user?.id === item.seller_id);
+  const [isSeller, setIsSeller] = useState(user?.id === item.user_id);
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('ko-KR') + '원';
@@ -44,7 +44,7 @@ const ProductScreen = ({ navigation, route }: ProductScreenProps) => {
     }
   
     try {
-      const chatRoom = await chatService.createChatRoom(item.id, user.id, item.seller_id);
+      const chatRoom = await chatService.createChatRoom(item.id, user.id, item.user_id);
   
       navigation.navigate('Main', {
         screen: 'Chat',
@@ -121,6 +121,15 @@ const ProductScreen = ({ navigation, route }: ProductScreenProps) => {
         >
           <Icon name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
+        {/* 여기 옆에 책 이름이랑 신고하기 버튼 추가하기 
+        <Text style={styles.title}>{item.title}</Text>
+        <TouchableOpacity
+          style={Cstyles.backButton}
+          onPress={() => navigation.신고창 띄우기기()}
+        >
+          <Icon name="report" size={24} color="#000" />
+        </TouchableOpacity>
+        */}
       </View>
 
       <ScrollView>
@@ -132,6 +141,7 @@ const ProductScreen = ({ navigation, route }: ProductScreenProps) => {
         >
           {item.imageUrls.map((url, index) => (
             <View key={index} style={{ width: SCREEN_WIDTH }}>
+              {/* 선택한 책 isbn 코드가 썸네일 사진으로 오게 만들고 추가 사진들은 뒤에 이어서 나오도록 설정정 */}
               <Image
                 source={{ uri: url }}
                 style={{
@@ -146,23 +156,25 @@ const ProductScreen = ({ navigation, route }: ProductScreenProps) => {
         
         <View style={styles.contentContainer}>
           <Text style={styles.title}>{item.title}</Text>
+          {/* 이것도 isbn 코드를 가져와 책 이름을 가져다 넣을 것것 */}
           <Text style={styles.price}>{formatPrice(item.price)}</Text>
-          <Text style={styles.time}>{item.created_at}</Text>
+          <Text style={styles.time}>{item.published_date}</Text>
         
           <View style={styles.sellerInfo}>
             <Text style={styles.sellerTitle}>판매자</Text>
-            <Text style={styles.sellerName}>{item.seller_name}</Text>
+            <Text style={styles.sellerName}>{user?.username}</Text>
+            {/* 올린 사람의 username을 가져와야함 */}
           </View>
 
           <View style={Cstyles.divider} />
 
           <View style={styles.sellerInfo}>
             <Text style={styles.sellerTitle}>상태</Text>
-            <Text style={styles.sellerName}>{item.status}</Text>
+            <Text style={styles.sellerName}>{item.book_condition}</Text>
           </View>
           <View style={styles.sellerInfo}>
             <Text style={styles.sellerTitle}>직거래 여부</Text>
-            <Text style={styles.sellerName}>{item.handonhand}</Text>
+            <Text style={styles.sellerName}>{item.can_trade}</Text>
           </View>
           <View style={Cstyles.divider} />
 
@@ -198,6 +210,17 @@ const ProductScreen = ({ navigation, route }: ProductScreenProps) => {
           >
             <Text style={styles.chatButtonText}>채팅하기</Text>
           </TouchableOpacity>
+          // <TouchableOpacity
+          //   style={styles.deleteButton}
+          //       onPress={() => {
+          //       const newImages = [...images];
+          //       newImages.splice(index, 1)
+          //       setImages(newImages);
+          //     }}
+          //   >
+          //   <MaterialIcon name="heart" size={20} color="#fff" />
+          // </TouchableOpacity>
+          // 진짜 하트 아이콘 찾아서 채팅하기와 8:2정도의 공간으로 분리해서 채팅하기 옆에 배치할 것
         )}
       </View>
     </SafeAreaView>

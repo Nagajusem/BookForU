@@ -82,4 +82,42 @@ export const sellScreenStyles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
+  bookInfoContainer: {
+    padding: 16,
+    backgroundColor: '#f8f8f8',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  bookDetails: {
+    flex: 1,
+  },
+  bookTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  bookAuthor: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  bookPublisher: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  bookCategory: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  bookDate: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  bookIsbn: {
+    fontSize: 12,
+    color: '#999',
+  },
 });

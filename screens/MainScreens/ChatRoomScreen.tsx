@@ -14,7 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 import { ChatRoomStyles as styles } from '../../styles/ChatRoomStyles';
 import { CommonStyles as Cstyles } from '../../styles/CommonStyles';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { chatService, Message, SocketMessage } from '../../services/api';
+import { chatService } from '../../services/api';
 
 interface ChatRoomScreenProps {
   route: {
@@ -29,74 +29,58 @@ interface ChatRoomScreenProps {
 const ChatRoomScreen = ({ route, navigation }: ChatRoomScreenProps) => {
   const { roomId, productTitle } = route.params;
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [roomInfo, setRoomInfo] = useState<Omit<ChatRoom, 'chats'> | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const flatListRef = useRef<FlatList>(null);
+  const pollingInterval = useRef<NodeJS.Timeout>();
 
-  const handleNewMessage = (message: Message) => {
-    setMessages(prev => [...prev, message]);
-    setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
-  };
-
-  useEffect(() => {
-    chatService.initializeSocket();
-    chatService.joinChatRoom(roomId);
-    chatService.subscribeToMessages(roomId, handleNewMessage);
-    loadMessages();
-
-    return () => {
-      chatService.unsubscribeFromMessages(roomId);
-    };
-  }, [roomId]);
-
+  // 메시지 목록 로드
   const loadMessages = async () => {
     try {
-      const response = await chatService.getChatMessages(roomId);
-      setMessages(response);
-      setLoading(false);
+      const { roomInfo: newRoomInfo, messages: newMessages } = await chatService.getChatMessages(roomId);
+      setRoomInfo(newRoomInfo);
+      setMessages(newMessages);
       setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
-    } catch (error) {
-      console.error('Failed to load messages:', error);
+    } catch (err) {
+      console.error('Failed to load messages:', err);
+    } finally {
       setLoading(false);
     }
   };
 
-  const sendMessage = () => {
+  useEffect(() => {
+    loadMessages();
+    pollingInterval.current = setInterval(loadMessages, 5000);
+
+    return () => {
+      if (pollingInterval.current) {
+        clearInterval(pollingInterval.current);
+      }
+    };
+  }, [roomId]);
+
+  const sendMessage = async () => {
     if (!newMessage.trim() || !user) return;
 
-    const messageData: SocketMessage = {
-      chatroom_id: roomId,
-      sender_id: user.id,
-      content: newMessage.trim()
-    };
-
-    // Optimistic update
-    const optimisticMessage: Message = {
-      id: Date.now(),
-      ...messageData,
-      sender_name: user.username,
-      created_at: new Date().toISOString()
-    };
-
-    setMessages(prev => [...prev, optimisticMessage]);
-    setNewMessage('');
-    flatListRef.current?.scrollToEnd();
-
-    chatService.sendMessage(messageData);
+    try {
+      await chatService.sendMessage(user.id, roomId, newMessage.trim());
+      setNewMessage('');
+      await loadMessages(); // 전송 후 즉시 메시지 목록 갱신
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    }
   };
 
-  const renderMessage = ({ item }: { item: Message }) => {
-    const isMine = item.sender_id === user?.id;
+  const renderMessage = ({ item }: { item: ChatMessage }) => {
+    const isMine = item.user_id === user?.id;
 
     return (
       <View style={[
         styles.messageContainer,
         isMine ? styles.myMessage : styles.otherMessage
       ]}>
-        {!isMine && (
-          <Text style={styles.senderName}>{item.sender_name}</Text>
-        )}
         <Text style={[
           styles.messageText,
           isMine ? styles.myMessageText : styles.otherMessageText
@@ -104,7 +88,7 @@ const ChatRoomScreen = ({ route, navigation }: ChatRoomScreenProps) => {
           {item.content}
         </Text>
         <Text style={styles.messageTime}>
-          {new Date(item.created_at).toLocaleTimeString('ko-KR', {
+          {new Date(item.send_at).toLocaleTimeString('ko-KR', {
             hour: '2-digit',
             minute: '2-digit'
           })}
@@ -172,5 +156,3 @@ const ChatRoomScreen = ({ route, navigation }: ChatRoomScreenProps) => {
     </SafeAreaView>
   );
 };
-
-export default ChatRoomScreen;

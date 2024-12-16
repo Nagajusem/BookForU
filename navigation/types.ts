@@ -1,3 +1,5 @@
+import { Book } from "../services/api";
+
 export type RootStackParamList = {
   Auth: undefined;
   Main: {
@@ -17,7 +19,7 @@ export type RootStackParamList = {
 
 export type MainTabParamList = {
   Home: undefined;
-  Sell: undefined;
+  SellTab: undefined;  
   Chat: undefined;
   MyPage: undefined;
 };
@@ -30,6 +32,11 @@ export type ChatNavigatorParamList = {
   };
 };
 
+export type SellStackParamList = {
+  BookSearch: undefined;
+  Sell: { bookInfo: Book };
+};
+
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
@@ -37,14 +44,14 @@ export type AuthStackParamList = {
 
 export interface Product {
   id: number;
+  user_id: number; 
   title: string;
   price: number;
-  status: string;
-  handonhand: string;
+  isbn : number;
+  book_condition: string;
+  can_trade: string;
   description: string;
-  seller_name: string;
-  seller_id: number; 
-  created_at: string;
+  published_date: string;
   images: string[];
 }
 
@@ -52,7 +59,7 @@ export type HomeStackParamList = {
   HomeMain: undefined;
   Search: undefined;
   Product: {
-    item: FormattedProduct; // Product에서 FormattedProduct로 변경
+    item: FormattedProduct;
   };
 };
 
