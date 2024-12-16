@@ -88,7 +88,7 @@ export interface Product {
   images: string[];
 }
 
-interface ChatMessage {
+export interface ChatMessage {
   id: number;
   user_id: number;
   chat_id: number;
@@ -96,7 +96,7 @@ interface ChatMessage {
   content: string;
 }
 
-interface ChatRoom {
+export interface ChatRoom {
   id: number;
   item_id: number;
   user1_id: number;
@@ -235,6 +235,12 @@ export const productService = {
 export const chatService = {
   getChatRooms: async (userId: number): Promise<ChatRoom[]> => {
     try {
+      // userId가 number 타입인지 확인
+      if (typeof userId !== 'number') {
+        console.error('Invalid userId type:', typeof userId);
+        return [];
+      }
+  
       const response = await api.get(`/users/chats?user_id=${userId}`);
       if (response.status === 404) {
         return [];

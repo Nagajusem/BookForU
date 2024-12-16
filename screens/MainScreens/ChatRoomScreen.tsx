@@ -14,7 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 import { ChatRoomStyles as styles } from '../../styles/ChatRoomStyles';
 import { CommonStyles as Cstyles } from '../../styles/CommonStyles';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { chatService } from '../../services/api';
+import { chatService, ChatMessage, ChatRoom } from '../../services/api';
 
 interface ChatRoomScreenProps {
   route: {
@@ -156,3 +156,5 @@ const ChatRoomScreen = ({ route, navigation }: ChatRoomScreenProps) => {
     </SafeAreaView>
   );
 };
+
+export default ChatRoomScreen;
