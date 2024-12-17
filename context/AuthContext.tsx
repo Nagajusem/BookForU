@@ -5,6 +5,7 @@ import { authService } from '../services/api';
 interface User {
   id: number;
   username: string;
+  is_blocked: boolean;
 }
 
 interface AuthContextType {
@@ -52,11 +53,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(true);
       const response = await authService.login({ username, password });
       
-      if (response.data && response.code === 200) {
+      if (response.data) {
         const userData = {
           id: response.data.id,
-          username: response.data.username
+          username: response.data.username,
+          is_blocked: response.data.is_blocked
         };
+        
+        if (userData.is_blocked) {
+          throw new Error('차단된 회원입니다. 관리자에게 문의하세요.');
+        }
+
         await AsyncStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
         setIsLoggedIn(true);

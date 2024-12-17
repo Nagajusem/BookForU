@@ -25,16 +25,43 @@ const RegisterScreen = ({ navigation }: RegisterScreenProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [isVerificationRequested, setIsVerificationRequested] = useState(false);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
+  const validatePhoneNumber = (phone: string) => {
+    const phoneRegex = /^01[0-9]{8,9}$/;
+    return phoneRegex.test(phone);
+  };
+
+  const handlePhoneVerification = () => {
+    if (!validatePhoneNumber(phoneNumber)) {
+      Alert.alert('오류', '올바른 전화번호 형식이 아닙니다.');
+      return;
+    }
+
+    // 가짜 인증 처리
+    setIsVerificationRequested(true);
+    setTimeout(() => {
+      setIsPhoneVerified(true);
+      Alert.alert('성공', '전화번호 인증이 완료되었습니다.');
+    }, 1000);
+  };
+
   const handleRegister = async() => {
     // 기본적인 유효성 검사
     if (!username || !password || !confirmPassword) {
       Alert.alert('오류', '모든 필드를 입력해주세요.');
+      return;
+    }
+
+    if (!isPhoneVerified) {
+      Alert.alert('오류', '전화번호 인증이 필요합니다.');
       return;
     }
 
@@ -54,7 +81,7 @@ const RegisterScreen = ({ navigation }: RegisterScreenProps) => {
     }
   
     try {
-      const response = await authService.register({ username, email ,password });
+      const response = await authService.register({ username, email, password });
       Alert.alert('성공', '회원가입이 완료되었습니다.', [
         {
           text: '확인',
@@ -95,6 +122,33 @@ const RegisterScreen = ({ navigation }: RegisterScreenProps) => {
                 autoCapitalize="none"
                 returnKeyType="next"
               />
+
+              <Text style={styles.label}>전화번호</Text>
+              <View style={styles.phoneContainer}>
+                <TextInput
+                  style={[styles.input, styles.phoneInput]}
+                  placeholder="'-' 없이 입력해주세요"
+                  placeholderTextColor="#666"
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  keyboardType="numeric"
+                  editable={!isPhoneVerified}
+                  maxLength={11}
+                />
+                <TouchableOpacity 
+                  style={[
+                    styles.verificationButton,
+                    (isPhoneVerified || isVerificationRequested) && styles.disabledButton
+                  ]} 
+                  onPress={handlePhoneVerification}
+                  disabled={isPhoneVerified || isVerificationRequested}
+                >
+                  <Text style={styles.verificationButtonText}>
+                    {isPhoneVerified ? '인증완료' : '인증하기'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               <Text style={styles.label}>Email</Text>
               <TextInput
                 style={styles.input}
@@ -129,13 +183,15 @@ const RegisterScreen = ({ navigation }: RegisterScreenProps) => {
               />
             </View>
 
-            <TouchableOpacity 
-              style={styles.registerButton} 
-              onPress={handleRegister}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.registerButtonText}>가입하기</Text>
-            </TouchableOpacity>
+            {isPhoneVerified && (
+              <TouchableOpacity 
+                style={styles.registerButton} 
+                onPress={handleRegister}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.registerButtonText}>가입하기</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -191,6 +247,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
     color: '#1a1a1a',
+  },
+  phoneContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
+  },
+  phoneInput: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  verificationButton: {
+    backgroundColor: '#007AFF',
+    height: 52,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  verificationButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  disabledButton: {
+    backgroundColor: '#cccccc',
   },
   registerButton: {
     height: 52,

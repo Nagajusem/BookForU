@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { searchScreenstyles as styles } from '../../styles/SearchScreenStyles';
 import { CommonStyles as Cstyles } from '../../styles/CommonStyles'
 import {
@@ -13,9 +13,9 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { HomeStackParamList, Product } from '../../navigation/types';
+import { HomeStackParamList } from '../../navigation/types';
 import { useDebounce } from '../../hooks/useDebounce';
-import api from '../../services/api';
+import { bookService, Book } from '../../services/api';
 
 type SearchScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList, 'Search'>;
 
@@ -25,11 +25,10 @@ interface SearchScreenProps {
 
 const SearchScreen = ({ navigation }: SearchScreenProps) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [searchResults, setSearchResults] = useState<Book[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // 디바운스된 검색 쿼리 (300ms)
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   // 검색 API 호출 함수
@@ -43,8 +42,8 @@ const SearchScreen = ({ navigation }: SearchScreenProps) => {
     setError(null);
 
     try {
-      const response = await api.get(`/products/search?query=${encodeURIComponent(query)}`);
-      setSearchResults(response.data);
+      const results = await bookService.searchBooks('isbn', query);
+      setSearchResults(results);
     } catch (err) {
       setError('검색 중 오류가 발생했습니다.');
       setSearchResults([]);
@@ -53,21 +52,34 @@ const SearchScreen = ({ navigation }: SearchScreenProps) => {
     }
   }, []);
 
-  // 디바운스된 검색어가 변경될 때마다 검색 실행
-  React.useEffect(() => {
+  useEffect(() => {
     performSearch(debouncedSearchQuery);
   }, [debouncedSearchQuery, performSearch]);
 
-  const renderItem = ({ item }: { item: Product }) => (
+  const renderItem = ({ item }: { item: Book }) => (
     <TouchableOpacity 
       style={Cstyles.itemContainer}
-      onPress={() => navigation.navigate('Product', { item })}
+      onPress={() => navigation.navigate('Product', { 
+        item: {
+          ...item,
+          id: parseInt(item.isbn), // ISBN을 임시 ID로 사용
+          price: 0, // 기본값 설정
+          description: '',
+          published_date: new Date().toISOString(),
+          images: [],
+          book_condition: '',
+          can_trade: false,
+          completed: false,
+          user_id: 0
+        }
+      })}
     >
       <Image
         source={{ 
-          uri: item.images && item.images.length > 0 
-            ? `http://10.0.2.2:3000${item.images[0]}`
-            : '/api/placeholder/150/150'
+          uri: `http://noum.iptime.org:9000/books/thumbnail?isbn=${item.isbn}`,
+          headers: {
+            Accept: 'image/jpeg, image/png, image/jpg, application/json'
+          }
         }}
         style={styles.itemImage}
       />
@@ -75,10 +87,8 @@ const SearchScreen = ({ navigation }: SearchScreenProps) => {
         <Text style={styles.itemTitle} numberOfLines={1}>
           {item.title}
         </Text>
-        <Text style={styles.itemPrice}>
-          {item.price.toLocaleString()}원
-        </Text>
-        <Text>{item.created_at}</Text>
+        <Text>{item.author}</Text>
+        <Text>{item.publisher}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -95,9 +105,10 @@ const SearchScreen = ({ navigation }: SearchScreenProps) => {
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
-            placeholder="책 제목을 입력하세요"
+            placeholder="ISBN을 입력하세요"
             value={searchQuery}
             onChangeText={setSearchQuery}
+            keyboardType="numeric"
             autoFocus
           />
           {searchQuery.length > 0 && (
@@ -112,24 +123,24 @@ const SearchScreen = ({ navigation }: SearchScreenProps) => {
       </View>
 
       {isLoading ? (
-        <View >
+        <View style={Cstyles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
         </View>
       ) : error ? (
-        <View>
+        <View style={Cstyles.emptyContainer}>
           <Text>{error}</Text>
         </View>
       ) : (
         <FlatList
           data={searchResults}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => item.isbn}
           ListEmptyComponent={
             <View style={Cstyles.emptyContainer}>
               <Text style={styles.emptyText}>
                 {searchQuery.length > 0
                   ? '검색 결과가 없습니다'
-                  : '검색어를 입력해주세요'}
+                  : 'ISBN을 입력해주세요'}
               </Text>
             </View>
           }

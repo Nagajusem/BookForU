@@ -11,11 +11,21 @@ import MyPageScreen from '../screens/MainScreens/MyPageScreen';
 import SearchScreen from '../screens/MainScreens/SearchScreen';
 import ProductScreen from '../screens/MainScreens/ProductScreen';
 import ChatNavigator from './ChatNavigator';
-import { HomeStackParamList, MainTabParamList } from './types';
+import NoticeScreen from '../screens/MyPageScreens/NoticeScreen';
+import { MainTabParamList, MyPageStackParamList } from './types';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createNativeStackNavigator();
+const MyPageStack = createNativeStackNavigator<MyPageStackParamList>();
 
+const MyPageNavigator = () => {
+  return (
+    <MyPageStack.Navigator screenOptions={{ headerShown: false }}>
+      <MyPageStack.Screen name="MyPageMain" component={MyPageScreen} />
+      <MyPageStack.Screen name="Notice" component={NoticeScreen} />
+    </MyPageStack.Navigator>
+  );
+};
 
 // HomeStack 네비게이터
 const HomeStack = () => {
@@ -33,7 +43,7 @@ const HomeStack = () => {
         name="Search" component={SearchScreen} 
       />
       <Stack.Screen
-        name="Product" component={ProductScreen} 
+        name="Product" component={ProductScreen as any} 
       />
     </Stack.Navigator>
   );
@@ -68,8 +78,8 @@ const MainTab = () => {
         }}
       />
       <Tab.Screen
-        name="SellTab"  // 탭 이름 변경
-        component={SellStack}  // SellStack을 컴포넌트로 사용
+        name="Sell" 
+        component={SellStack} 
         options={{
           title: '판매',
           tabBarIcon: ({ color }) => (
@@ -89,7 +99,7 @@ const MainTab = () => {
       />
       <Tab.Screen
         name="MyPage"
-        component={MyPageScreen}
+        component={MyPageNavigator}
         options={{
           title: '마이페이지',
           tabBarIcon: ({ color }) => (

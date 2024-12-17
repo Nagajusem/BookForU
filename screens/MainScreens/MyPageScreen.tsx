@@ -12,9 +12,17 @@ import {
   Alert,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
-import { authService } from '../../services/api';
+import { authService, wishlistService } from '../../services/api';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { MyPageStackParamList } from '../../navigation/types';
 
-const MyPageScreen = () => {
+type MyPageScreenNavigationProp = NativeStackNavigationProp<MyPageStackParamList, 'MyPageMain'>;
+
+interface MyPageScreenProps {
+  navigation: MyPageScreenNavigationProp;
+}
+
+const MyPageScreen = ({ navigation }: MyPageScreenProps) => {
   const { logout, user } = useAuth();
   console.log('Current user in MyPage:', user); // 디버깅용 로그
   const handleLogout = () => {
@@ -55,13 +63,18 @@ const MyPageScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('회원탈퇴 시도');
-              const response = await authService.withdraw();
-              console.log('서버 응답:', response);
+              if (!user) {
+                Alert.alert('오류', '사용자 정보를 찾을 수 없습니다.');
+                return;
+              }
+              await authService.withdraw(user.id);
               await logout();
-              console.log('로그아웃 완료');
             } catch (error) {
               console.error('회원탈퇴 중 에러:', error);
+              Alert.alert(
+                '오류',
+                error instanceof Error ? error.message : '회원탈퇴 중 오류가 발생했습니다.'
+              );
             }
           },
         },
@@ -69,6 +82,23 @@ const MyPageScreen = () => {
       { cancelable: true }
     );
   };
+
+  const handleWishlistPress = async () => {
+    try {
+      if (!user) {
+        Alert.alert('알림', '로그인이 필요한 서비스입니다.');
+        return;
+      }
+      
+      const wishlist = await wishlistService.getWishlist(user.id);
+      // 찜 목록 화면으로 이동
+      // navigation.navigate('WishList', { wishlist });
+    } catch (error) {
+      console.error('찜 목록 조회 실패:', error);
+      Alert.alert('오류', '찜 목록을 불러오는데 실패했습니다.');
+    }
+  };
+
   return (
     <ScrollView style={Cstyles.container}>
       <View style={Cstyles.header}>
@@ -106,7 +136,10 @@ const MyPageScreen = () => {
           <Text style={styles.statNumber}>0</Text>
           <Text style={styles.statLabel}>구매내역</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.statItem}>
+        <TouchableOpacity 
+          style={styles.statItem}
+          onPress={handleWishlistPress}
+        >
           <Text style={styles.statNumber}>0</Text>
           <Text style={styles.statLabel}>찜</Text>
         </TouchableOpacity>
@@ -118,7 +151,7 @@ const MyPageScreen = () => {
           <Text style={styles.menuText}>설정</Text>
           <Icon name="chevron-right" size={24} color="#666" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Notice')}>
           <Icon name="info-outline" size={24} color="#666" />
           <Text style={styles.menuText}>공지사항</Text>
           <Icon name="chevron-right" size={24} color="#666" />

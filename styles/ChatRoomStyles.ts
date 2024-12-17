@@ -12,21 +12,54 @@ export const ChatRoomStyles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  backButton: {
-    padding: 8,
-    marginRight: 8,
-  },
   headerTitle: {
+    flex: 1,
     fontSize: 18,
     fontWeight: 'bold',
+    marginLeft: 16,
+  },
+  backButton: {
+    padding: 8,
+  },
+  keyboardAvoid: {
+    flex: 1,
+  },
+  chatContainer: {
+    flex: 1,
+  },
+  messageList: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    backgroundColor: '#fff',
+  },
+  input: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 100,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
+    fontSize: 16,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  messageList: {
-    padding: 16,
   },
   messageContainer: {
     maxWidth: '80%' as const,
@@ -62,33 +95,9 @@ export const ChatRoomStyles = StyleSheet.create({
     alignSelf: 'flex-end' as const,
     marginTop: 4,
   },
-  keyboardAvoid: {
-    flex: 1,
-  },
   innerContainer: {
     flex: 1,
     justifyContent: 'space-between',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#dec8ac',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    alignItems: 'center',
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 8,
-    maxHeight: 100,
-  },
-  sendButton: {
-    padding: 8,
   },
   errorContainer: {
     flex: 1,

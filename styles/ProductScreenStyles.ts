@@ -74,18 +74,6 @@ export const ProductScreenStyles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: '#eee',
       },
-      chatButton: {
-        backgroundColor: '#FF6B6B',
-        padding: 15,
-        borderRadius: 8,
-        alignItems: 'center',
-      },
-      chatButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
-      },
-
       sellerButtonContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -126,5 +114,125 @@ export const ProductScreenStyles = StyleSheet.create({
       imageContainer: {
         height: 300,
       },
-      
+      bookTitle: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        marginBottom: 15,
+        color: '#000',
+      },
+      modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      },
+      modalContent: {
+        width: '80%',
+        backgroundColor: 'white',
+        borderRadius: 12,
+        padding: 20,
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: {
+          width: 0,
+          height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
+      modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 20,
+        textAlign: 'center',
+      },
+      reasonButton: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+      },
+      reasonText: {
+        fontSize: 16,
+        color: '#333',
+      },
+      cancelButton: {
+        marginTop: 16,
+        alignItems: 'center',
+      },
+      cancelText: {
+        fontSize: 16,
+        color: '#666',
+      },
+      reportButton: {
+        padding: 8,
+      },
+      headerTitle: {
+        flex: 1,
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginHorizontal: 16,
+      },
+
+      buyerButtonContainer: {
+        flexDirection: 'row',
+        paddingHorizontal: 16,
+        gap: 12,
+      },
+      chatButton: {
+        flex: 0.8,
+        height: 52,
+        backgroundColor: '#FF6B6B',
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+          width: 0,
+          height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+      },
+      chatButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+      },
+      wishlistButton: {
+        flex: 0.2,
+        height: 52,
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#FF6B6B',
+      },
+      completedContainer: {
+        paddingHorizontal: 16,
+        width: '100%',
+      },
+      completedButton: {
+        height: 52,
+        backgroundColor: '#999',
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+          width: 0,
+          height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+      },
+      completedButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+      },
 });

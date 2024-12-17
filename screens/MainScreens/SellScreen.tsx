@@ -8,29 +8,13 @@ import {
   TextInput,
   ScrollView,
   Alert,
-  StyleSheet,
-  Image,
 } from 'react-native';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import { Picker } from '@react-native-picker/picker';
 import { productService } from '../../services/api';
 import { useNavigation, RouteProp } from '@react-navigation/native';
 import { MainTabParamList } from '../../navigation/types';
-import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { useAuth } from '../../context/AuthContext';
-
-interface Book {
-  isbn: string;
-  title: string;
-  author: string;
-  publisher: string;
-  published_at: string;
-  category: string;
-}
-
-interface ImageType {
-  uri: string;
-}
 
 type SellScreenRouteProp = RouteProp<MainTabParamList, 'Sell'>;
 
@@ -43,107 +27,45 @@ const SellScreen = ({ route }: SellScreenProps) => {
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [book_condition, setbook_condition] = useState('A');
-  const [can_trade, setcan_trade] = useState('O');
-  const [images, setImages] = useState<ImageType[]>([]);
+  const [can_trade, setcan_trade] = useState<boolean>(true);
   const { user } = useAuth();
   const navigation = useNavigation();
-
-  const handleAddImage = () => {
-    Alert.alert(
-      '사진 추가',
-      '사진을 추가할 방법을 선택하세요',
-      [
-        {
-          text: '카메라로 촬영',
-          onPress: handleTakePhoto,
-        },
-        {
-          text: '갤러리에서 선택',
-          onPress: handleChoosePhoto,
-        },
-        {
-          text: '취소',
-          style: 'cancel',
-        },
-      ],
-    );
-  };
-
-  const handleTakePhoto = async () => {
-    const result = await launchCamera({
-      mediaType: 'photo',
-      quality: 0.8,
-      maxWidth: 1200,
-      maxHeight: 1200,
-    });
-
-    if (result.assets && result.assets[0]?.uri) {
-      setImages([...images, { uri: result.assets[0].uri }]);
-    }
-  };
-
-  const handleChoosePhoto = async () => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      quality: 0.8,
-      maxWidth: 1200,
-      maxHeight: 1200,
-      selectionLimit: 10 - images.length,
-    });
-
-    if (result.assets) {
-      const newImages = result.assets
-        .filter((asset): asset is typeof asset & { uri: string } => asset.uri !== undefined)
-        .map(asset => ({ uri: asset.uri }));
-      setImages([...images, ...newImages]);
-    }
-  };
 
   const handleSubmit = async () => {
     if (!user) {
       Alert.alert('알림', '로그인이 필요한 서비스입니다.');
       return;
     }
-
+  
     if (!bookInfo) {
       Alert.alert('알림', '도서 정보가 필요합니다.');
       return;
     }
-
+  
     try {
-      const formData = new FormData();
-      images.forEach((image, index) => {
-        formData.append('images', {
-          uri: image.uri,
-          type: 'image/jpeg',
-          name: `image${index}.jpg`,
-        });
-      });
-  
-      const uploadResponse = await productService.uploadImages(formData);
-      const imageUrls = uploadResponse.urls;
-  
+      // 수정된 productData 생성
       const productData = {
+        user_id: Number(user.id), // 직접 숫자로 변환
+        title: bookInfo.title,
         price: parseInt(price),
+        isbn: bookInfo.isbn,
         book_condition,
         can_trade,
         description,
-        images: imageUrls,
-        isbn: bookInfo.isbn,
-        title: bookInfo.title
+        completed: false,
+        published_date: new Date().toISOString()
       };
-
-      await productService.createProduct(productData, user.id);
-
+  
+      console.log('Final product data:', productData);
+      await productService.createProduct(productData);
+  
       Alert.alert('성공', '상품이 등록되었습니다.', [
         {
           text: '확인',
-          onPress: () => {
-            navigation.goBack();
-          }
+          onPress: () => navigation.goBack()
         }
       ]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('상품 등록 실패:', error);
       Alert.alert('오류', '상품 등록에 실패했습니다.');
     }
@@ -161,37 +83,6 @@ const SellScreen = ({ route }: SellScreenProps) => {
           </View>
         </View>
       )}
-      <View style={styles.imageSection}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {images.map((image, index) => (
-            <View key={index} style={styles.imageContainer}>
-              <Image source={{ uri: image.uri }} style={styles.selectedImage} />
-              <TouchableOpacity 
-                style={styles.deleteButton}
-                onPress={() => {
-                  const newImages = [...images];
-                  newImages.splice(index, 1);
-                  setImages(newImages);
-                }}
-              >
-                <MaterialIcon name="close" size={20} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          ))}
-          {images.length < 10 && (
-            <TouchableOpacity 
-              style={styles.addImageButton} 
-              onPress={handleAddImage}
-            >
-              <MaterialIcon name="add-a-photo" size={24} color="#666" />
-              <Text style={styles.addImageText}>
-                사진 추가 ({images.length}/10)
-              </Text>
-            </TouchableOpacity>
-          )}
-        </ScrollView>
-      </View>
-
       <View style={styles.inputSection}>
         <TextInput
           style={Cstyles.input}
@@ -221,10 +112,10 @@ const SellScreen = ({ route }: SellScreenProps) => {
           <Picker
             selectedValue={can_trade}
             style={styles.picker}
-            onValueChange={(itemValue) => setcan_trade(itemValue)}
+            onValueChange={(itemValue: boolean) => setcan_trade(itemValue)}
           >
-            <Picker.Item label='O' value="true" />
-            <Picker.Item label='X' value="false" />
+            <Picker.Item label='O' value={true} />
+            <Picker.Item label='X' value={false} />
           </Picker>
         </View>
 
